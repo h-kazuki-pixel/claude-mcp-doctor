@@ -1,0 +1,52 @@
+{
+  "name": "claude-mcp-doctor",
+  "version": "1.0.0",
+  "description": "Diagnose Claude Desktop MCP config problems and get copy-paste fixes. Beginner-friendly, Japanese/English, zero dependencies.",
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').chmodSync('dist/index.js',0o755)\"",
+    "prepublishOnly": "npm run build && npm test",
+    "test": "node test/run.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "claude",
+    "claude-desktop",
+    "model-context-protocol",
+    "doctor",
+    "diagnostics",
+    "troubleshooting",
+    "cli",
+    "japanese",
+    "beginner"
+  ],
+  "author": "Kazu (@h-kazuki-pixel)",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "typescript": "^7.0.2"
+  },
+  "type": "module",
+  "bin": {
+    "claude-mcp-doctor": "dist/index.js",
+    "cmd-doctor": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/h-kazuki-pixel/claude-mcp-doctor.git"
+  },
+  "homepage": "https://github.com/h-kazuki-pixel/claude-mcp-doctor#readme",
+  "bugs": {
+    "url": "https://github.com/h-kazuki-pixel/claude-mcp-doctor/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
