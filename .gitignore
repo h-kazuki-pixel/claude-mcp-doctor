@@ -1,0 +1,30 @@
+# 依存パッケージ
+node_modules/
+
+# ビルド結果
+dist/
+
+# ログ
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# 環境変数・秘密情報
+.env
+.env.*
+*.pem
+*.key
+
+# OS
+.DS_Store
+Thumbs.db
+
+# エディタ
+.vscode/
+.idea/
+*.swp
+
+# npm
+*.tgz
+.npm/
