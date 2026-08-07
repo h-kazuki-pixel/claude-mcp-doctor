@@ -1,5 +1,7 @@
 # claude-mcp-doctor
 
+[![CI](https://github.com/h-kazuki-pixel/claude-mcp-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/h-kazuki-pixel/claude-mcp-doctor/actions/workflows/ci.yml)
+
 **Claude Desktop の MCP 設定を診断して、「次に何をすればいいか」まで教えるCLIツールです。**
 
 MCPサーバーを設定したのに Claude に出てこない——その原因を探して、**そのままコピペできる解決コマンド**を表示します。プログラミングの知識がなくても使えるように作りました。
