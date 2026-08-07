@@ -5,6 +5,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
+import { normalizePlatform, type Platform } from "./paths.js";
+
 export type Severity = "error" | "warn" | "info";
 
 export interface Finding {
@@ -71,15 +73,18 @@ export function findInPath(
   command: string,
   env: NodeJS.ProcessEnv = process.env,
   exists: (p: string) => boolean = (p) => fs.existsSync(p),
+  platform: Platform = normalizePlatform(process.platform),
 ): string | null {
   const rawPath = env.PATH ?? env.Path ?? "";
   if (!rawPath) return null;
-  const sep = process.platform === "win32" ? ";" : ":";
-  const exts = process.platform === "win32" ? [".exe", ".cmd", ".bat", ""] : [""];
+  const isWindows = platform === "win32";
+  const sep = isWindows ? ";" : ":";
+  const exts = isWindows ? [".exe", ".cmd", ".bat", ""] : [""];
+  const impl = isWindows ? path.win32 : path.posix;
   for (const dir of rawPath.split(sep)) {
     if (!dir) continue;
     for (const ext of exts) {
-      const candidate = path.join(dir, command + ext);
+      const candidate = impl.join(dir, command + ext);
       if (exists(candidate)) return candidate;
     }
   }
@@ -103,11 +108,14 @@ export interface CheckOptions {
   exists?: (p: string) => boolean;
   env?: NodeJS.ProcessEnv;
   home?: string;
+  /** 検査対象のOS。省略時は実行中のOS */
+  platform?: Platform;
 }
 
 export function checkConfig(parsed: unknown, options: CheckOptions = {}): Finding[] {
   const exists = options.exists ?? ((p: string) => fs.existsSync(p));
   const env = options.env ?? process.env;
+  const platform = options.platform ?? normalizePlatform(process.platform);
   const findings: Finding[] = [];
 
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
@@ -161,7 +169,7 @@ export function checkConfig(parsed: unknown, options: CheckOptions = {}): Findin
         });
       }
     } else {
-      const found = findInPath(command, env, exists);
+      const found = findInPath(command, env, exists, platform);
       if (!found) {
         const suggestion = suggestCommand(command);
         findings.push({

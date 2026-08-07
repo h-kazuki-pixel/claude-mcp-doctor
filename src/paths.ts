@@ -12,6 +12,20 @@ export function normalizePlatform(p: string): Platform {
   return "unknown";
 }
 
+/**
+ * 対象OSに対応する path 実装を返す。
+ * path.join をそのまま使うと「実行中のOS」の区切り文字になり、
+ * 引数で受け取った platform と食い違うため、ここで明示的に選ぶ。
+ */
+function pathFor(platform: Platform): typeof path.posix {
+  return platform === "win32" ? path.win32 : path.posix;
+}
+
+/** Windows形式のパスに見えるか(ドライブレターまたは円記号を含む) */
+function looksWindowsPath(value: string): boolean {
+  return /^[A-Za-z]:[\\/]/.test(value) || value.includes("\\");
+}
+
 export interface PathContext {
   platform: Platform;
   home: string;
@@ -22,9 +36,10 @@ export interface PathContext {
  * Claude Desktop の claude_desktop_config.json の既定パスを返す。
  */
 export function defaultConfigPath(ctx: PathContext): string {
+  const p = pathFor(ctx.platform);
   switch (ctx.platform) {
     case "darwin":
-      return path.join(
+      return p.join(
         ctx.home,
         "Library",
         "Application Support",
@@ -32,11 +47,11 @@ export function defaultConfigPath(ctx: PathContext): string {
         "claude_desktop_config.json",
       );
     case "win32": {
-      const base = ctx.appData ?? path.join(ctx.home, "AppData", "Roaming");
-      return path.join(base, "Claude", "claude_desktop_config.json");
+      const base = ctx.appData ?? p.join(ctx.home, "AppData", "Roaming");
+      return p.join(base, "Claude", "claude_desktop_config.json");
     }
     default:
-      return path.join(ctx.home, ".config", "Claude", "claude_desktop_config.json");
+      return p.join(ctx.home, ".config", "Claude", "claude_desktop_config.json");
   }
 }
 
@@ -54,7 +69,8 @@ export function currentContext(): PathContext {
 export function expandHome(p: string, home: string): string {
   if (p === "~") return home;
   if (p.startsWith("~/") || p.startsWith("~\\")) {
-    return path.join(home, p.slice(2));
+    const impl = looksWindowsPath(home) ? path.win32 : path.posix;
+    return impl.join(home, p.slice(2));
   }
   return p;
 }
@@ -63,7 +79,7 @@ export function expandHome(p: string, home: string): string {
  * 設定ファイルを開くための、OSごとのコマンドを返す。
  */
 export function revealCommand(configPath: string, platform: Platform): string {
-  const dir = path.dirname(configPath);
+  const dir = pathFor(platform).dirname(configPath);
   switch (platform) {
     case "darwin":
       return `open "${dir}"`;

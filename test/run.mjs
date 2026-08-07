@@ -200,27 +200,28 @@ group("checks: command");
 
 const existsAll = () => true;
 const existsNone = () => false;
+// 検査対象のOSを明示する。実行中のOSに依存せず、どの環境でも同じ結果になる。
 const fakeEnv = { PATH: "/usr/bin" };
 
 check(
   "commandが無い",
-  checkConfig({ mcpServers: { a: {} } }, { exists: existsAll, env: fakeEnv })[0]?.code === "COMMAND_MISSING",
+  checkConfig({ mcpServers: { a: {} } }, { exists: existsAll, env: fakeEnv, platform: "linux" })[0]?.code === "COMMAND_MISSING",
 );
 check(
   "commandが空文字",
-  checkConfig({ mcpServers: { a: { command: "   " } } }, { exists: existsAll, env: fakeEnv })[0]?.code ===
+  checkConfig({ mcpServers: { a: { command: "   " } } }, { exists: existsAll, env: fakeEnv, platform: "linux" })[0]?.code ===
     "COMMAND_MISSING",
 );
 check(
   "PATHにあるコマンドは通る",
-  checkConfig({ mcpServers: { a: { command: "node" } } }, { exists: existsAll, env: fakeEnv }).length === 0,
+  checkConfig({ mcpServers: { a: { command: "node" } } }, { exists: existsAll, env: fakeEnv, platform: "linux" }).length === 0,
 );
 
-const typo = checkConfig({ mcpServers: { a: { command: "nodee" } } }, { exists: existsNone, env: fakeEnv });
+const typo = checkConfig({ mcpServers: { a: { command: "nodee" } } }, { exists: existsNone, env: fakeEnv, platform: "linux" });
 check("打ち間違いを検出する", typo[0]?.code === "COMMAND_TYPO");
 check("正しい候補を提案する", typo[0]?.data.suggestion === "node", typo[0]?.data);
 
-const unknownCmd = checkConfig({ mcpServers: { a: { command: "zzzzzzzz" } } }, { exists: existsNone, env: fakeEnv });
+const unknownCmd = checkConfig({ mcpServers: { a: { command: "zzzzzzzz" } } }, { exists: existsNone, env: fakeEnv, platform: "linux" });
 check("全く違うコマンドはPATH不在として扱う", unknownCmd[0]?.code === "COMMAND_NOT_IN_PATH");
 
 check("suggestCommand: npxx → npx", suggestCommand("npxx") === "npx");
@@ -230,16 +231,16 @@ check("suggestCommand: 遠すぎる場合はnull", suggestCommand("qwertyuiop") 
 
 check(
   "絶対パスのcommandが存在しない",
-  checkConfig({ mcpServers: { a: { command: "/opt/none/node" } } }, { exists: existsNone, env: fakeEnv })[0]?.code ===
+  checkConfig({ mcpServers: { a: { command: "/opt/none/node" } } }, { exists: existsNone, env: fakeEnv, platform: "linux" })[0]?.code ===
     "COMMAND_PATH_MISSING",
 );
 check(
   "絶対パスのcommandが存在すれば通る",
-  checkConfig({ mcpServers: { a: { command: "/usr/bin/node" } } }, { exists: existsAll, env: fakeEnv }).length === 0,
+  checkConfig({ mcpServers: { a: { command: "/usr/bin/node" } } }, { exists: existsAll, env: fakeEnv, platform: "linux" }).length === 0,
 );
 check(
   "commandの~は展開されないと警告",
-  checkConfig({ mcpServers: { a: { command: "~/bin/node" } } }, { exists: existsAll, env: fakeEnv })[0]?.code ===
+  checkConfig({ mcpServers: { a: { command: "~/bin/node" } } }, { exists: existsAll, env: fakeEnv, platform: "linux" })[0]?.code ===
     "TILDE_NOT_EXPANDED",
 );
 
@@ -251,20 +252,20 @@ group("checks: args とビルド忘れ");
 
 const relative = checkConfig(
   { mcpServers: { a: { command: "node", args: ["dist/index.js"] } } },
-  { exists: existsAll, env: fakeEnv },
+  { exists: existsAll, env: fakeEnv, platform: "linux" },
 );
 check("相対パスを検出する", relative[0]?.code === "ARG_RELATIVE_PATH");
 
 const tildeArg = checkConfig(
   { mcpServers: { a: { command: "node", args: ["~/p/dist/index.js"] } } },
-  { exists: existsAll, env: fakeEnv },
+  { exists: existsAll, env: fakeEnv, platform: "linux" },
 );
 check("argsの~を検出する", tildeArg[0]?.code === "TILDE_NOT_EXPANDED");
 
 // ビルド忘れ: プロジェクトはあるが dist が無い
 const buildMissing = checkConfig(
   { mcpServers: { a: { command: "node", args: ["/p/proj/dist/index.js"] } } },
-  { exists: (p) => p === "/usr/bin/node" || p === "/p/proj", env: fakeEnv },
+  { exists: (p) => p === "/usr/bin/node" || p === "/p/proj", env: fakeEnv, platform: "linux" },
 );
 check("ビルド忘れを検出する", buildMissing[0]?.code === "BUILD_MISSING", buildMissing[0]);
 check("ビルド忘れの解決にプロジェクトのパスが入る", buildMissing[0]?.data.projectDir === "/p/proj");
@@ -272,41 +273,41 @@ check("ビルド忘れの解決にプロジェクトのパスが入る", buildMi
 // dist はあるが中身が無い
 const outMissing = checkConfig(
   { mcpServers: { a: { command: "node", args: ["/p/proj/dist/index.js"] } } },
-  { exists: (p) => p === "/usr/bin/node" || p === "/p/proj" || p === "/p/proj/dist", env: fakeEnv },
+  { exists: (p) => p === "/usr/bin/node" || p === "/p/proj" || p === "/p/proj/dist", env: fakeEnv, platform: "linux" },
 );
 check("ビルド結果の欠落を検出する", outMissing[0]?.code === "BUILD_OUTPUT_MISSING", outMissing[0]);
 
 const argMissing = checkConfig(
   { mcpServers: { a: { command: "node", args: ["/nowhere/server.js"] } } },
-  { exists: (p) => p === "/usr/bin/node", env: fakeEnv },
+  { exists: (p) => p === "/usr/bin/node", env: fakeEnv, platform: "linux" },
 );
 check("存在しないファイルを検出する", argMissing[0]?.code === "ARG_PATH_MISSING");
 
 check(
   "オプション引数(-yなど)はパス扱いしない",
-  checkConfig({ mcpServers: { a: { command: "npx", args: ["-y", "some-pkg"] } } }, { exists: existsAll, env: fakeEnv })
+  checkConfig({ mcpServers: { a: { command: "npx", args: ["-y", "some-pkg"] } } }, { exists: existsAll, env: fakeEnv, platform: "linux" })
     .length === 0,
 );
 check(
   "パッケージ名はパス扱いしない",
   checkConfig(
     { mcpServers: { a: { command: "npx", args: ["@scope/pkg"] } } },
-    { exists: (p) => p === "/usr/bin/npx", env: fakeEnv },
+    { exists: (p) => p === "/usr/bin/npx", env: fakeEnv, platform: "linux" },
   ).length === 0,
 );
 check(
   "argsが配列でない",
-  checkConfig({ mcpServers: { a: { command: "node", args: "x.js" } } }, { exists: existsAll, env: fakeEnv })[0]?.code ===
+  checkConfig({ mcpServers: { a: { command: "node", args: "x.js" } } }, { exists: existsAll, env: fakeEnv, platform: "linux" })[0]?.code ===
     "ARGS_NOT_ARRAY",
 );
 check(
   "argsの中身が数値",
-  checkConfig({ mcpServers: { a: { command: "node", args: [8080] } } }, { exists: existsAll, env: fakeEnv })[0]?.code ===
+  checkConfig({ mcpServers: { a: { command: "node", args: [8080] } } }, { exists: existsAll, env: fakeEnv, platform: "linux" })[0]?.code ===
     "ARG_NOT_STRING",
 );
 check(
   "存在するファイルなら通る",
-  checkConfig({ mcpServers: { a: { command: "node", args: ["/p/dist/index.js"] } } }, { exists: existsAll, env: fakeEnv })
+  checkConfig({ mcpServers: { a: { command: "node", args: ["/p/dist/index.js"] } } }, { exists: existsAll, env: fakeEnv, platform: "linux" })
     .length === 0,
 );
 
@@ -315,31 +316,31 @@ group("checks: env と秘密情報");
 
 const secret = checkConfig(
   { mcpServers: { a: { command: "node", env: { MY_KEY: "sk-EXAMPLE-not-a-real-key-abcdefg" } } } },
-  { exists: existsAll, env: fakeEnv },
+  { exists: existsAll, env: fakeEnv, platform: "linux" },
 );
 check("APIキーらしき値を警告する", secret[0]?.code === "ENV_SECRET_INLINE");
 check("秘密情報は警告(errorではない)", secret[0]?.severity === "warn");
 check("警告に鍵の名前が入る", secret[0]?.data.key === "MY_KEY");
 check(
   "短い値は秘密情報扱いしない",
-  checkConfig({ mcpServers: { a: { command: "node", env: { MODE: "debug" } } } }, { exists: existsAll, env: fakeEnv })
+  checkConfig({ mcpServers: { a: { command: "node", env: { MODE: "debug" } } } }, { exists: existsAll, env: fakeEnv, platform: "linux" })
     .length === 0,
 );
 check(
   "普通の日本語の値は秘密情報扱いしない",
   checkConfig(
     { mcpServers: { a: { command: "node", env: { NOTE: "これは長めの説明文です。テストのために書いています。" } } } },
-    { exists: existsAll, env: fakeEnv },
+    { exists: existsAll, env: fakeEnv, platform: "linux" },
   ).length === 0,
 );
 check(
   "envが配列",
-  checkConfig({ mcpServers: { a: { command: "node", env: [] } } }, { exists: existsAll, env: fakeEnv })[0]?.code ===
+  checkConfig({ mcpServers: { a: { command: "node", env: [] } } }, { exists: existsAll, env: fakeEnv, platform: "linux" })[0]?.code ===
     "ENV_NOT_OBJECT",
 );
 check(
   "envの値が数値",
-  checkConfig({ mcpServers: { a: { command: "node", env: { PORT: 8080 } } } }, { exists: existsAll, env: fakeEnv })[0]
+  checkConfig({ mcpServers: { a: { command: "node", env: { PORT: 8080 } } } }, { exists: existsAll, env: fakeEnv, platform: "linux" })[0]
     ?.code === "ENV_VALUE_NOT_STRING",
 );
 
@@ -350,7 +351,7 @@ const multiServer = checkConfig(
       bad: { command: "nodee" },
     },
   },
-  { exists: (p) => p === "/usr/bin/node" || p.startsWith("/p"), env: fakeEnv },
+  { exists: (p) => p === "/usr/bin/node" || p.startsWith("/p"), env: fakeEnv, platform: "linux" },
 );
 check("複数サーバーのうち問題のあるものだけ報告する", multiServer.length === 1);
 check("どのサーバーの問題か分かる", multiServer[0]?.server === "bad");
